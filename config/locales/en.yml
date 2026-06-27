@@ -1,0 +1,19 @@
+# Default English strings shipped by the Hoarder engine.
+#
+# Rails::Engine automatically appends this file to I18n.load_path, so a host app
+# gets working messages with zero configuration. Any key a host redefines in its
+# own config/locales/*.yml wins (host locales load after engine locales), so these
+# are safe, overridable defaults — not a hard dependency on the host.
+en:
+  hoarder:
+    errors:
+      csv_too_large: 'The uploaded CSV file is too large.'
+      no_records: 'There are no records in the uploaded CSV file.'
+      unauthorized: 'Unauthorized'
+  # Kept under the `engine.hoarder` namespace the controller already references so
+  # existing host overrides continue to apply unchanged.
+  engine:
+    hoarder:
+      resource_type: 'A resource type is required.'
+      invalid_query_params: 'The request is missing one or more required parameters.'
+      incorrect_header: 'The CSV header does not match the expected columns for this resource.'

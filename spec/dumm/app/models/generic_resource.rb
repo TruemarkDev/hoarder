@@ -1,0 +1,2 @@
+class GenericResource < ApplicationRecord
+end

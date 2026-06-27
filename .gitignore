@@ -1,0 +1,13 @@
+/.bundle/
+/doc/
+/log/*.log
+/pkg/
+/tmp/
+
+# Test dummy app artifacts
+/spec/dumm/log/*.log
+/spec/dumm/tmp/
+/coverage/
+
+# A library should not commit its lockfile.
+/Gemfile.lock
