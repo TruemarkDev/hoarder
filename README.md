@@ -10,6 +10,42 @@ broadcasting.
 It is currently used in GaugeHire to bulk-upload company locations and job
 invitations.
 
+## Installation
+
+Add the gem (distributed from GitHub, not RubyGems):
+
+```ruby
+# Gemfile
+gem 'hoarder', github: 'TruemarkDev/hoarder', tag: 'v0.1.0'
+```
+
+Hoarder stores each upload's CSV with **Active Storage**, so the host app must
+have Active Storage installed and migrated:
+
+```bash
+bin/rails active_storage:install
+```
+
+Copy the engine's migration into the host and run it (this creates the
+`hoarder_bulk_uploads` table — Rails generates the `hoarder:install:migrations`
+task automatically for the mounted engine):
+
+```bash
+bin/rails hoarder:install:migrations
+bin/rails db:migrate
+```
+
+Mount the engine:
+
+```ruby
+# config/routes.rb
+mount Hoarder::Engine, at: '/hoarder'
+```
+
+Then configure it from an initializer — see [Configuration](#configuration).
+Re-run `bin/rails hoarder:install:migrations && bin/rails db:migrate` after
+upgrading the gem to pick up any new engine migrations.
+
 ## Lifecycle
 
 Every upload is a single `Hoarder::BulkUpload` row with a CSV attached via Active
@@ -115,7 +151,31 @@ class BulkUploadsChannel < ApplicationCable::Channel
 end
 ```
 
-`GET /bulk_uploads/:id/status` remains available as a polling fallback.
+To set realtime up end to end:
+
+1. **Have a working Action Cable adapter.** In production use a real backend —
+   `solid_cable` (DB-backed, no extra infra) or the `redis` adapter — in
+   `config/cable.yml`. The `async` (in-process) adapter is dev/test only and does
+   not fan out across processes.
+2. **Set `Hoarder.broadcaster`** in the initializer (above). The engine broadcasts
+   *only* when it is set; leave it unset to run in polling-only mode.
+3. **Add the channel** above so clients can subscribe to a specific upload's stream.
+4. **Subscribe from the client** to that channel, keyed by the upload id:
+
+   ```js
+   import { createConsumer } from "@rails/actioncable"
+
+   createConsumer().subscriptions.create(
+     { channel: "BulkUploadsChannel", id: bulkUploadId },
+     { received: (data) => {
+         // { type: 'status', status, message, id }
+         // { type: 'progress', status, processed, total, id }
+       } }
+   )
+   ```
+
+`GET /bulk_uploads/:id/status` remains available as a polling fallback when
+realtime is not configured.
 
 ## Writing a resource
 
