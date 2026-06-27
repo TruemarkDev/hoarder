@@ -10,6 +10,38 @@ broadcasting.
 It is currently used in GaugeHire to bulk-upload company locations and job
 invitations.
 
+## Scope & rendering (API/JSON today)
+
+Hoarder's controller responds with **JSON only** — every action renders a JSON
+body; there are no HTML responses, redirects, or `<turbo-stream>` responses, and
+the engine ships no UI. It was built for a JSON API consumed by a SPA. It is not
+yet Hotwire-native.
+
+You can still use it from a server-rendered (HTML/Turbo/Stimulus) app:
+
+- **Drive it from Stimulus.** Treat the endpoints as a JSON API: `POST` the CSV
+  and read status with `fetch` from a Stimulus controller. This works today.
+- **Get live updates via the broadcaster seam.** `Hoarder.broadcaster` is
+  format-agnostic — it receives `(stream_name, payload)` where `payload[:id]` is
+  the upload. A Turbo host can render a partial and push it over
+  `Turbo::StreamsChannel` instead of sending the raw JSON hash:
+
+  ```ruby
+  Hoarder.broadcaster = ->(stream_name, payload) do
+    upload = Hoarder::BulkUpload.find(payload[:id])
+    Turbo::StreamsChannel.broadcast_replace_to(
+      stream_name, target: "bulk_upload_#{upload.id}",
+      partial: "bulk_uploads/status", locals: { upload: upload }
+    )
+  end
+  ```
+
+  Subscribe in the view with `turbo_stream_from Hoarder::BulkUpload.stream_name_for(id)`.
+
+**Not yet provided:** native `respond_to` HTML/Turbo-Stream controller responses,
+flash/redirect flows, or bundled views/Stimulus controllers. Turbo-native support
+is on the roadmap — see [Roadmap](#roadmap).
+
 ## Installation
 
 Add the gem (distributed from GitHub, not RubyGems):
@@ -218,6 +250,14 @@ bundle install
 cd spec/dumm && RAILS_ENV=test bundle exec rails db:create db:schema:load && cd -
 RAILS_ENV=test bundle exec rspec     # coverage report written to coverage/
 ```
+
+## Roadmap
+
+- **Turbo-native mode (v0.2.0):** opt-in `respond_to` so the controller can return
+  HTML / Turbo-Stream responses (and redirects) in addition to JSON, plus an
+  optional Turbo-Stream broadcaster and bundled status partial/Stimulus controller,
+  so server-rendered Hotwire apps get a drop-in experience instead of wiring the
+  JSON API themselves. See [Scope & rendering](#scope--rendering-apijson-today).
 
 ## License
 
